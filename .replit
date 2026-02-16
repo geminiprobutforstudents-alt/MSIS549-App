@@ -85,5 +85,4 @@ waitForPort = 5000
 expertMode = true
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["python", "main.py"]
+deploymentTarget = "cloudrun"
