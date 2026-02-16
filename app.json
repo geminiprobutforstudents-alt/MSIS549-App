@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d94dc233-d718-40d4-9273-37aca1be3542"
+      }
+    },
+    "owner": "geminipro"
   }
 }

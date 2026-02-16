@@ -1,5 +1,5 @@
 entrypoint = "README.md"
-modules = ["nodejs-22"]
+modules = ["nodejs-22", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
@@ -12,8 +12,12 @@ externalPort = 80
 localPort = 8082
 externalPort = 3000
 
+[[ports]]
+localPort = 5000
+externalPort = 80
+
 [workflows]
-runButton = "Dev Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -54,6 +58,27 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx eas build --platform android --profile preview"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Talkalot Backend"
+
+[[workflows.workflow]]
+name = "Talkalot Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 expertMode = true
