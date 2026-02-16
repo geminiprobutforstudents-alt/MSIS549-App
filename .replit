@@ -3,6 +3,7 @@ modules = ["nodejs-22", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
+packages = ["libxcrypt"]
 
 [[ports]]
 localPort = 8081
@@ -82,3 +83,6 @@ outputType = "webview"
 
 [agent]
 expertMode = true
+
+[deployment]
+deploymentTarget = "cloudrun"
