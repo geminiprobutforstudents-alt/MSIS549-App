@@ -3,17 +3,17 @@ import logging
 import uuid
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, String, DateTime, JSON, delete
+from sqlalchemy import create_engine, Column, String, DateTime, JSON, Boolean, delete
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime, timedelta
 
-# Setup logging for live demo debugging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("talkalot-backend")
 
-# Database setup using Replit PostgreSQL
 DATABASE_URL = os.environ.get("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -25,12 +25,18 @@ class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, index=True)
     last_seen = Column(DateTime, default=datetime.utcnow)
-    # Location is simplified for the demo: within 1 mile of demo room or not
-    is_nearby = Column(String, default="false") # "true" or "false"
-    # Interests stored as a list of tags
+    is_nearby = Column(String, default="false")
     interest_tags = Column(JSON, default=[])
-    # Free-text stored but not used in matching logic as requested
     free_text_interests = Column(String, nullable=True)
+    inside_fair = Column(Boolean, default=False)
+
+class Post(Base):
+    __tablename__ = "posts"
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+    content = Column(String)
+    tags = Column(JSON, default=[])
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
 
@@ -48,89 +54,174 @@ class HeartbeatRequest(BaseModel):
     userID: str
     is_nearby: bool
 
+class JoinFairRequest(BaseModel):
+    userID: str
+
+class PostCreate(BaseModel):
+    user_id: str
+    content: str
+    tags: List[str]
+
+class PostResponse(BaseModel):
+    id: str
+    user_id: str
+    content: str
+    tags: List[str]
+    created_at: str
+
 # --- App ---
 
 app = FastAPI(title="Talkalot Backend Demo")
 
-def cleanup_expired_presence(db: Session):
-    """
-    Automatically clear expired presence and associated data.
-    Presence expires after 180 seconds of no heartbeat.
-    """
-    expiry_time = datetime.utcnow() - timedelta(seconds=180)
-    expired_users_query = delete(User).where(User.last_seen < expiry_time)
-    result = db.execute(expired_users_query)
-    db.commit()
-    if result.rowcount > 0:
-        logger.info(f"Cleaned up {result.rowcount} expired users.")
+def get_db():
+    db = SessionLocal()
+    try:
+        return db
+    except Exception:
+        db.close()
+        raise
 
-@app.post("/register", response_model=RegisterResponse)
+def cleanup_expired_presence(db: Session):
+    expiry_time = datetime.utcnow() - timedelta(seconds=180)
+    db.query(User).filter(User.last_seen < expiry_time).delete()
+    db.commit()
+
+@app.post("/api/register", response_model=RegisterResponse)
 def register():
-    """
-    Creates a new user and returns a unique ID.
-    Privacy: No PII collected. Only an anonymous UUID is generated.
-    """
     db = SessionLocal()
     user_id = str(uuid.uuid4())
-    new_user = User(id=user_id, last_seen=datetime.utcnow())
+    new_user = User(id=user_id, last_seen=datetime.utcnow(), inside_fair=False)
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
     db.close()
     logger.info(f"Registered new user: {user_id}")
     return {"userID": user_id}
 
-@app.post("/interests")
+@app.post("/api/join-fair")
+def join_fair(req: JoinFairRequest):
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == req.userID).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    user.inside_fair = True
+    db.commit()
+    db.close()
+    logger.info(f"User {req.userID} joined the fair")
+    return {"status": "success", "inside_fair": True}
+
+@app.get("/api/user-status")
+def user_status(userID: str):
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == userID).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    result = {"inside_fair": user.inside_fair}
+    db.close()
+    return result
+
+@app.post("/api/interests")
 def update_interests(req: InterestsRequest):
     db = SessionLocal()
     user = db.query(User).filter(User.id == req.userID).first()
     if not user:
         db.close()
         raise HTTPException(status_code=404, detail="User not found")
-    
     user.interest_tags = req.tags
     user.free_text_interests = req.free_text
     db.commit()
     db.close()
-    logger.info(f"Updated interests for user: {req.userID}")
     return {"status": "success"}
 
-@app.post("/heartbeat")
+@app.post("/api/heartbeat")
 def heartbeat(req: HeartbeatRequest):
     db = SessionLocal()
     cleanup_expired_presence(db)
-    
     user = db.query(User).filter(User.id == req.userID).first()
     if not user:
         db.close()
         raise HTTPException(status_code=404, detail="User session expired or not found")
-    
     user.last_seen = datetime.utcnow()
     user.is_nearby = "true" if req.is_nearby else "false"
     db.commit()
     db.close()
     return {"status": "updated"}
 
-@app.get("/matches")
+@app.get("/api/matches")
 def get_matches(userID: str):
     db = SessionLocal()
     cleanup_expired_presence(db)
-    
     current_user = db.query(User).filter(User.id == userID).first()
     if not current_user:
         db.close()
         raise HTTPException(status_code=404, detail="User not found")
-
     matches = db.query(User).filter(
         User.id != userID,
         User.is_nearby == "true"
     ).all()
-    
     result = [m.interest_tags for m in matches if m.interest_tags]
     db.close()
-    
-    logger.info(f"Fetched {len(result)} matches for user {userID}")
     return {"matches": result}
+
+@app.post("/api/posts", response_model=PostResponse)
+def create_post(post: PostCreate):
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == post.user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.inside_fair:
+        db.close()
+        raise HTTPException(status_code=403, detail="Must join the fair first to post")
+    new_post = Post(
+        id=str(uuid.uuid4()),
+        user_id=post.user_id,
+        content=post.content,
+        tags=post.tags,
+        created_at=datetime.utcnow()
+    )
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+    result = PostResponse(
+        id=new_post.id,
+        user_id=new_post.user_id,
+        content=new_post.content,
+        tags=new_post.tags,
+        created_at=new_post.created_at.isoformat()
+    )
+    db.close()
+    return result
+
+@app.get("/api/posts", response_model=List[PostResponse])
+def get_posts(userID: str):
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == userID).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.inside_fair:
+        db.close()
+        return []
+    posts = db.query(Post).order_by(Post.created_at.desc()).all()
+    result = [
+        PostResponse(
+            id=p.id,
+            user_id=p.user_id,
+            content=p.content,
+            tags=p.tags,
+            created_at=p.created_at.isoformat()
+        ) for p in posts
+    ]
+    db.close()
+    return result
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse("static/index.html", headers={"Cache-Control": "no-cache"})
 
 if __name__ == "__main__":
     import uvicorn

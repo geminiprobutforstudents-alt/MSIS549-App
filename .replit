@@ -1,9 +1,13 @@
 entrypoint = "README.md"
-modules = ["nodejs-22", "python-3.11"]
+modules = ["nodejs-22", "python-3.11", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
 packages = ["libxcrypt"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 8081
@@ -12,10 +16,6 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3000
-
-[[ports]]
-localPort = 5000
-externalPort = 80
 
 [workflows]
 runButton = "Project"
@@ -73,13 +73,13 @@ args = "Talkalot Backend"
 name = "Talkalot Backend"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 expertMode = true

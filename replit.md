@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **Talkalot** project — a mobile application built with **Expo (React Native)** for the frontend and a **FastAPI (Python)** backend. The app appears to be a proximity-based social/matching application where users can register, set interest tags, and be matched with nearby users. The frontend uses Expo's file-based routing with a tab navigation structure, while the backend provides a REST API backed by PostgreSQL via SQLAlchemy.
+This is a **Talkalot Fair** project — a web application with a **FastAPI (Python)** backend serving a frontend directly. The app is a fair/event-based social platform where users can join a fair, write posts with tags, and see other attendees' posts. The frontend is served as static HTML/CSS/JS from the FastAPI backend on port 5000.
 
 ## User Preferences
 
@@ -10,87 +10,78 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend (Expo / React Native)
+### Frontend (HTML/CSS/JS)
 
-- **Framework**: Expo SDK 54 with React Native 0.81, using the new architecture (`newArchEnabled: true`)
-- **Routing**: File-based routing via `expo-router` v6 with typed routes enabled. Routes live in the `app/` directory.
-- **Navigation Structure**: Tab-based layout with a `(tabs)` group containing `index` (Home) and `explore` screens. The root layout wraps everything in a theme provider that supports light/dark mode.
-- **Styling**: Standard React Native `StyleSheet` with a custom theming system via `Colors.ts` constants and `useThemeColor` / `useColorScheme` hooks. No CSS-in-JS library like NativeWind is used.
-- **Reusable Components**: Located in `components/` — includes `ThemedText`, `ThemedView`, `ParallaxScrollView`, `Collapsible`, `ExternalLink`, `HelloWave`, and `HapticTab`. Platform-specific components (e.g., `IconSymbol.ios.tsx` vs `IconSymbol.tsx`) handle iOS vs Android/web differences.
-- **Platform Support**: Android, iOS, and Web. Web output is static via Metro bundler.
-- **Key Dependencies**: `react-native-reanimated` for animations, `react-native-gesture-handler`, `react-native-webview`, `expo-haptics`, `expo-blur`, `expo-image`.
+- **Served from**: FastAPI static file mount at `/static/`
+- **Entry point**: `static/index.html` served at `/`
+- **Screens**:
+  1. Welcome screen — "Get Started" button to register
+  2. Fair screen — "Join Fair" one-click button
+  3. Main screen — Two tabs: Feed (view all posts) and New Post (write & tag posts)
+- **State**: User ID stored in localStorage for session persistence
+- **Features**:
+  - One-click Join Fair
+  - Post creation with text content and tags
+  - Tag suggestions and custom tag input
+  - Feed showing all posts from fair attendees (only visible if inside_fair == true)
 
 ### Backend (FastAPI / Python)
 
 - **Framework**: FastAPI (in `main.py`)
 - **ORM**: SQLAlchemy with a declarative base pattern
 - **Database**: PostgreSQL, connected via the `DATABASE_URL` environment variable (Replit-provided PostgreSQL)
-- **Data Model**: A single `User` table with:
-  - `id` (String, primary key) — UUID-based user IDs
-  - `last_seen` (DateTime) — tracks user activity
-  - `is_nearby` (String) — simplified proximity flag ("true"/"false")
-  - `interest_tags` (JSON) — list of interest tag strings for matching
-  - `free_text_interests` (String, nullable) — stored but explicitly not used in matching logic
-- **API Schemas** (Pydantic models defined but endpoints are incomplete/in-progress):
-  - `RegisterResponse` — returns a userID
-  - `InterestsRequest` — accepts userID, tags list, and optional free text
-  - `HeartbeatRequest` — accepts userID and nearby boolean
-- **Design Notes**: The backend is in early development. Models and schemas are defined but API route handlers are not fully implemented in the visible code. The matching logic is meant to be tag-based, with proximity as a filter.
+- **Data Models**:
+  - `User` table: id, last_seen, is_nearby, interest_tags, free_text_interests, inside_fair (Boolean)
+  - `Post` table: id, user_id, content, tags (JSON), created_at
+- **API Endpoints** (all prefixed with `/api/`):
+  - `POST /api/register` — Create anonymous user, returns userID
+  - `POST /api/join-fair` — One-click join fair (sets inside_fair=true)
+  - `GET /api/user-status` — Check if user is inside fair
+  - `POST /api/posts` — Create a post (requires inside_fair=true)
+  - `GET /api/posts` — Get all posts (returns empty if not inside fair)
+  - `POST /api/interests` — Update interest tags
+  - `POST /api/heartbeat` — Update presence/proximity
+  - `GET /api/matches` — Get nearby user matches
 
 ### Project Structure
 
 ```
-├── app/                    # Expo Router pages (file-based routing)
-│   ├── _layout.tsx         # Root layout (Stack navigator + theme)
-│   ├── +not-found.tsx      # 404 screen
-│   └── (tabs)/             # Tab group
-│       ├── _layout.tsx     # Tab navigator config
-│       ├── index.tsx       # Home tab
-│       └── explore.tsx     # Explore tab
-├── components/             # Reusable React Native components
-│   └── ui/                 # Platform-specific UI components
-├── constants/              # Theme colors and app constants
-├── hooks/                  # Custom React hooks (theming)
-├── assets/                 # Images and fonts
-├── scripts/                # Utility scripts (reset-project)
+├── static/                 # Frontend files served by FastAPI
+│   ├── index.html          # Main HTML page
+│   ├── styles.css          # Styling
+│   └── app.js              # Frontend JavaScript logic
+├── app/                    # Expo Router pages (legacy, not actively used)
+├── components/             # React Native components (legacy)
 ├── main.py                 # FastAPI backend server
-├── app.json                # Expo configuration
-├── package.json            # Node.js dependencies
-└── tsconfig.json           # TypeScript configuration
+├── app.json                # Expo configuration (legacy)
+├── package.json            # Node.js dependencies (for Expo)
+└── tsconfig.json           # TypeScript configuration (for Expo)
 ```
 
 ### Key Architectural Decisions
 
-1. **Monorepo with dual runtimes**: The frontend (Node.js/Expo) and backend (Python/FastAPI) coexist in the same repository. They run as separate processes — the Expo dev server for the frontend and a Python process for the backend API.
+1. **Web frontend served from FastAPI**: The frontend is plain HTML/CSS/JS served directly by the FastAPI backend, making deployment simple (single process on port 5000).
 
-2. **SQLAlchemy over Drizzle**: The backend uses Python's SQLAlchemy ORM rather than a JavaScript ORM. This is because the backend is written entirely in Python. The database connection expects a `DATABASE_URL` environment variable pointing to PostgreSQL.
+2. **Access control via inside_fair flag**: Posts are only visible to users who have joined the fair. The join is a one-click action with no additional requirements.
 
-3. **Simplified location model**: Rather than implementing full geolocation with coordinates and distance calculations, proximity is stored as a simple boolean flag (`is_nearby`). This is a deliberate simplification for demo purposes.
+3. **Anonymous users**: No PII is collected. Users get a UUID on registration, stored in localStorage.
 
-4. **Tag-based matching**: User matching is designed around structured interest tags (JSON array) rather than free-text analysis. Free text is collected but explicitly excluded from matching logic.
+4. **Tag-based posts**: Posts support multiple tags, with suggested tags and custom tag input via Enter key.
 
 ## External Dependencies
 
 ### Database
-- **PostgreSQL**: Connected via `DATABASE_URL` environment variable. Used by the FastAPI backend through SQLAlchemy. Tables are auto-created on startup via `Base.metadata.create_all()`.
+- **PostgreSQL**: Connected via `DATABASE_URL` environment variable. Tables: `users` and `posts`.
 
 ### Python Packages (Backend)
 - `fastapi` — Web framework for the REST API
-- `pydantic` — Request/response validation (built into FastAPI)
-- `sqlalchemy` — ORM for PostgreSQL database access
-- `uvicorn` (implied) — ASGI server to run FastAPI
+- `pydantic` — Request/response validation
+- `sqlalchemy` — ORM for PostgreSQL
+- `uvicorn` — ASGI server
 
-### Node.js Packages (Frontend)
-- `expo` (SDK 54) — Core mobile development framework
-- `expo-router` — File-based routing
-- `react-native` (0.81) — Mobile UI framework
-- `react-native-reanimated` — Animations
-- `react-native-gesture-handler` — Gesture handling
-- `react-native-webview` — WebView component
-- `expo-haptics` — Haptic feedback (iOS)
-- `expo-blur` — Blur effects (iOS tab bar)
-- `expo-image` — Optimized image component
-- `@react-navigation/bottom-tabs` — Tab navigation
-
-### Services
-- **EAS (Expo Application Services)**: Configured with project ID `d94dc233-d718-40d4-9273-37aca1be3542` for builds and deployment
+## Recent Changes
+- Added `Post` model and `posts` table for user-created content with tags
+- Added `inside_fair` Boolean column to `users` table
+- Created `/api/join-fair`, `/api/posts`, `/api/user-status` endpoints
+- Built web frontend with welcome, join fair, feed, and compose screens
+- All API routes prefixed with `/api/` to avoid conflicts with static file serving

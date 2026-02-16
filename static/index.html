@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talkalot Fair</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Talkalot Fair</h1>
+      <div id="status-bar"></div>
+    </header>
+
+    <section id="welcome-screen" class="screen active">
+      <div class="card centered">
+        <h2>Welcome to Talkalot</h2>
+        <p>Join the fair to connect with others, share your thoughts, and discover topics.</p>
+        <button id="btn-register" class="btn-primary btn-large">Get Started</button>
+      </div>
+    </section>
+
+    <section id="fair-screen" class="screen">
+      <div class="card centered">
+        <h2>You're registered!</h2>
+        <p>Tap the button below to join the fair and start seeing posts from others.</p>
+        <button id="btn-join-fair" class="btn-primary btn-large">Join Fair</button>
+      </div>
+    </section>
+
+    <section id="main-screen" class="screen">
+      <nav class="tab-bar">
+        <button class="tab active" data-tab="feed">Feed</button>
+        <button class="tab" data-tab="compose">New Post</button>
+      </nav>
+
+      <div id="tab-feed" class="tab-content active">
+        <div class="feed-header">
+          <h2>Fair Feed</h2>
+          <button id="btn-refresh" class="btn-secondary btn-small">Refresh</button>
+        </div>
+        <div id="posts-list">
+          <p class="empty-state">No posts yet. Be the first to share something!</p>
+        </div>
+      </div>
+
+      <div id="tab-compose" class="tab-content">
+        <h2>Write a Post</h2>
+        <div class="compose-form">
+          <textarea id="post-content" placeholder="What's on your mind?" rows="4"></textarea>
+          <div class="tags-section">
+            <label>Tags</label>
+            <div class="tag-input-row">
+              <input type="text" id="tag-input" placeholder="Add a tag and press Enter">
+            </div>
+            <div id="tags-container" class="tags-container"></div>
+            <div class="suggested-tags">
+              <span class="suggested-label">Suggestions:</span>
+              <button class="tag-suggestion" data-tag="tech">tech</button>
+              <button class="tag-suggestion" data-tag="art">art</button>
+              <button class="tag-suggestion" data-tag="music">music</button>
+              <button class="tag-suggestion" data-tag="food">food</button>
+              <button class="tag-suggestion" data-tag="science">science</button>
+              <button class="tag-suggestion" data-tag="sports">sports</button>
+              <button class="tag-suggestion" data-tag="gaming">gaming</button>
+              <button class="tag-suggestion" data-tag="travel">travel</button>
+            </div>
+          </div>
+          <button id="btn-post" class="btn-primary">Publish Post</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
