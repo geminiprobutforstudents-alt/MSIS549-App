@@ -15,7 +15,6 @@
 
     <section id="welcome-screen" class="screen active">
       <div class="card centered">
-        <div class="hero-icon">&#128075;</div>
         <h2>Welcome to Talkalot</h2>
         <p>Discover people who share your interests. Post what you're into, like what catches your eye, and get notified when a match is nearby.</p>
         <button id="btn-register" class="btn-primary btn-large">Get Started</button>
@@ -24,11 +23,15 @@
 
     <section id="fair-screen" class="screen">
       <div class="card centered">
-        <div class="hero-icon">&#127914;</div>
         <h2>Join the Event</h2>
-        <p>Tap below to mark yourself as present at the event. You'll be able to see other attendees' interests and get notified when a mutual match is nearby.</p>
-        <button id="btn-join-fair" class="btn-primary btn-large">I'm Here</button>
-        <p class="hint">You can still browse and post without joining, but event notifications require joining.</p>
+        <p>Let us know you're at the event so we can notify you when a mutual match is nearby.</p>
+        <div class="join-options">
+          <button id="btn-join-location" class="btn-primary btn-large">Use My Location</button>
+          <div class="join-divider"><span>or</span></div>
+          <button id="btn-join-manual" class="btn-primary btn-large">I'm Here (Manual)</button>
+        </div>
+        <p class="hint">You can still browse and post without joining, but proximity notifications require it.</p>
+        <button id="btn-skip-join" class="btn-link">Skip for now</button>
       </div>
     </section>
 

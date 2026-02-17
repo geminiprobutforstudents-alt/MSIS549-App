@@ -28,13 +28,13 @@ function updateEventBanner() {
   var btn = document.getElementById("btn-toggle-fair");
   banner.classList.remove("hidden");
   if (insideFair) {
-    text.textContent = "You're at the event";
+    text.textContent = "Present at event";
     btn.textContent = "Leave";
     btn.onclick = leaveFair;
   } else {
-    text.textContent = "Not at the event";
+    text.textContent = "Not at event";
     btn.textContent = "Join";
-    btn.onclick = joinFair;
+    btn.onclick = function() { showScreen("fair-screen"); };
   }
 }
 
@@ -65,7 +65,7 @@ async function joinFair() {
   try {
     await apiCall("POST", "/api/join-fair", { userID: userID });
     insideFair = true;
-    updateStatus("At the event");
+    updateStatus("");
     showScreen("main-screen");
     updateEventBanner();
     loadPosts();
@@ -75,11 +75,36 @@ async function joinFair() {
   }
 }
 
+async function joinWithLocation() {
+  if (!navigator.geolocation) {
+    showToast("Location is not supported by your browser. Use the manual option instead.", "error");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      joinFair();
+    },
+    function(error) {
+      showToast("Could not get your location. You can use the manual option instead.", "error");
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+async function skipJoin() {
+  insideFair = false;
+  updateStatus("");
+  showScreen("main-screen");
+  updateEventBanner();
+  loadPosts();
+  startPolling();
+}
+
 async function leaveFair() {
   try {
     await apiCall("POST", "/api/leave-fair", { userID: userID });
     insideFair = false;
-    updateStatus("Browsing remotely");
+    updateStatus("");
     updateEventBanner();
   } catch (e) {
     showToast(e.message, "error");
@@ -90,7 +115,7 @@ async function checkUserStatus() {
   try {
     var data = await apiCall("GET", "/api/user-status?userID=" + userID);
     insideFair = data.inside_fair;
-    updateStatus(insideFair ? "At the event" : "Browsing");
+    updateStatus("");
     showScreen("main-screen");
     updateEventBanner();
     updateNotifBadge(data.unread_notifications || 0);
@@ -233,9 +258,9 @@ async function loadNotifications() {
       container.innerHTML = '<p class="empty-state">No notifications yet.</p>';
       return;
     }
-    var icons = { like: "&#128077;", match: "&#129309;", proximity: "&#128205;" };
+    var labels = { like: "Like", match: "Match", proximity: "Nearby" };
     container.innerHTML = notifs.map(function(n) {
-      var icon = icons[n.notif_type] || "&#128276;";
+      var icon = labels[n.notif_type] || "Alert";
       return '<div class="notif-card' + (n.seen ? '' : ' unread') + '">' +
         '<div class="notif-icon">' + icon + '</div>' +
         '<div class="notif-body">' +
@@ -321,7 +346,9 @@ function escapeHtml(text) {
 }
 
 document.getElementById("btn-register").addEventListener("click", register);
-document.getElementById("btn-join-fair").addEventListener("click", joinFair);
+document.getElementById("btn-join-location").addEventListener("click", joinWithLocation);
+document.getElementById("btn-join-manual").addEventListener("click", joinFair);
+document.getElementById("btn-skip-join").addEventListener("click", skipJoin);
 document.getElementById("btn-post").addEventListener("click", submitPost);
 document.getElementById("btn-refresh").addEventListener("click", loadPosts);
 document.getElementById("btn-mark-seen").addEventListener("click", markNotificationsSeen);

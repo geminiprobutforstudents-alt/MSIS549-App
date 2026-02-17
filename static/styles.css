@@ -69,9 +69,45 @@ header h1 {
   margin-bottom: 20px;
 }
 
-.hero-icon {
-  font-size: 48px;
+.join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin-bottom: 16px;
+}
+
+.join-divider {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  color: #b2bec3;
+  font-size: 13px;
+}
+
+.join-divider::before,
+.join-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #dfe6e9;
+}
+
+.join-divider span {
+  padding: 0 12px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #636e72;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 8px;
+}
+
+.btn-link:hover {
+  color: #6c5ce7;
 }
 
 .hint {
@@ -467,8 +503,15 @@ textarea:focus {
 }
 
 .notif-icon {
-  font-size: 24px;
+  font-size: 11px;
+  font-weight: 700;
   flex-shrink: 0;
+  background: #e8e5fc;
+  color: #6c5ce7;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .notif-body {
