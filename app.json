@@ -20,7 +20,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -48,6 +53,12 @@
         "projectId": "d94dc233-d718-40d4-9273-37aca1be3542"
       }
     },
-    "owner": "geminipro"
+    "owner": "geminipro",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d94dc233-d718-40d4-9273-37aca1be3542"
+    }
   }
 }
