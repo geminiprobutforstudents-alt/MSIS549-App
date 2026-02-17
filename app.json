@@ -11,8 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Talkalot uses your location to check if you are at the event."
-      }
+        "NSLocationWhenInUseUsageDescription": "Talkalot uses your location to check if you are at the event.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.geminipro.expoonreplit"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +27,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "package": "com.geminipro.expoonreplit"
     },
     "web": {
       "bundler": "metro",
