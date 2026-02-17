@@ -3,52 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Talkalot Fair</title>
+  <title>Talkalot</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <div id="app">
     <header>
-      <h1>Talkalot Fair</h1>
+      <h1>Talkalot</h1>
       <div id="status-bar"></div>
     </header>
 
     <section id="welcome-screen" class="screen active">
       <div class="card centered">
+        <div class="hero-icon">&#128075;</div>
         <h2>Welcome to Talkalot</h2>
-        <p>Join the fair to connect with others, share your thoughts, and discover topics.</p>
+        <p>Discover people who share your interests. Post what you're into, like what catches your eye, and get notified when a match is nearby.</p>
         <button id="btn-register" class="btn-primary btn-large">Get Started</button>
       </div>
     </section>
 
     <section id="fair-screen" class="screen">
       <div class="card centered">
-        <h2>You're registered!</h2>
-        <p>Tap the button below to join the fair and start seeing posts from others.</p>
-        <button id="btn-join-fair" class="btn-primary btn-large">Join Fair</button>
+        <div class="hero-icon">&#127914;</div>
+        <h2>Join the Event</h2>
+        <p>Tap below to mark yourself as present at the event. You'll be able to see other attendees' interests and get notified when a mutual match is nearby.</p>
+        <button id="btn-join-fair" class="btn-primary btn-large">I'm Here</button>
+        <p class="hint">You can still browse and post without joining, but event notifications require joining.</p>
       </div>
     </section>
 
     <section id="main-screen" class="screen">
+      <div id="event-banner" class="event-banner hidden">
+        <span id="event-banner-text"></span>
+        <button id="btn-toggle-fair" class="btn-small"></button>
+      </div>
+
       <nav class="tab-bar">
         <button class="tab active" data-tab="feed">Feed</button>
         <button class="tab" data-tab="compose">New Post</button>
+        <button class="tab" data-tab="notifications">
+          Alerts
+          <span id="notif-badge" class="badge hidden">0</span>
+        </button>
+        <button class="tab" data-tab="matches">Matches</button>
       </nav>
 
       <div id="tab-feed" class="tab-content active">
         <div class="feed-header">
-          <h2>Fair Feed</h2>
+          <h2>Interest Feed</h2>
           <button id="btn-refresh" class="btn-secondary btn-small">Refresh</button>
         </div>
         <div id="posts-list">
-          <p class="empty-state">No posts yet. Be the first to share something!</p>
+          <p class="empty-state">No posts yet. Share your interests first!</p>
         </div>
       </div>
 
       <div id="tab-compose" class="tab-content">
-        <h2>Write a Post</h2>
+        <h2>Share an Interest</h2>
         <div class="compose-form">
-          <textarea id="post-content" placeholder="What's on your mind?" rows="4"></textarea>
+          <textarea id="post-content" placeholder="What are you into? Share an interest, hobby, or topic you'd love to talk about..." rows="4"></textarea>
           <div class="tags-section">
             <label>Tags</label>
             <div class="tag-input-row">
@@ -65,9 +78,32 @@
               <button class="tag-suggestion" data-tag="sports">sports</button>
               <button class="tag-suggestion" data-tag="gaming">gaming</button>
               <button class="tag-suggestion" data-tag="travel">travel</button>
+              <button class="tag-suggestion" data-tag="film">film</button>
+              <button class="tag-suggestion" data-tag="books">books</button>
             </div>
           </div>
-          <button id="btn-post" class="btn-primary">Publish Post</button>
+          <button id="btn-post" class="btn-primary">Publish</button>
+        </div>
+      </div>
+
+      <div id="tab-notifications" class="tab-content">
+        <div class="feed-header">
+          <h2>Notifications</h2>
+          <button id="btn-mark-seen" class="btn-secondary btn-small">Mark All Read</button>
+        </div>
+        <div id="notifications-list">
+          <p class="empty-state">No notifications yet.</p>
+        </div>
+      </div>
+
+      <div id="tab-matches" class="tab-content">
+        <div class="feed-header">
+          <h2>Your Matches</h2>
+          <button id="btn-refresh-matches" class="btn-secondary btn-small">Refresh</button>
+        </div>
+        <p class="section-hint">These people liked your posts and you liked theirs. When you're both at the event, you'll be notified!</p>
+        <div id="matches-list">
+          <p class="empty-state">No matches yet. Like some posts to find mutual interests!</p>
         </div>
       </div>
     </section>
