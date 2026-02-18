@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": false,
+      "edgeToEdgeEnabled": true,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -44,16 +44,6 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "minSdkVersion": 29,
-            "targetSdkVersion": 31,
-            "compileSdkVersion": 31
-          }
         }
       ]
     ],
