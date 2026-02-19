@@ -300,6 +300,13 @@ header h1 {
   margin-bottom: 12px;
 }
 
+.post-tags-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
 .post-card .post-actions {
   display: flex;
   align-items: center;

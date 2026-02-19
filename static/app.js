@@ -259,11 +259,10 @@ async function loadPosts() {
       var likeCountText = p.like_count > 0 ? '<span class="like-count">' + p.like_count + ' like' + (p.like_count !== 1 ? 's' : '') + '</span>' : '';
       return '<div class="post-card' + (isMe ? ' my-post' : '') + '">' +
         '<div class="post-meta">' +
-        '<span class="post-user">' + (isMe ? "You" : "Someone nearby") + '</span>' +
+        (tagsHtml ? '<span class="post-tags-inline">' + tagsHtml + '</span>' : '<span class="post-user">' + (isMe ? "You" : "") + '</span>') +
         '<span class="post-time">' + timeAgo(p.created_at) + '</span>' +
         '</div>' +
         '<div class="post-body">' + escapeHtml(p.content) + '</div>' +
-        (tagsHtml ? '<div class="post-tags">' + tagsHtml + '</div>' : '') +
         '<div class="post-actions">' + likeBtn + likeCountText + '</div>' +
         '</div>';
     }).join("");
