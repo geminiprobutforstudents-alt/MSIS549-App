@@ -123,24 +123,51 @@ class MatchResponse(BaseModel):
 class ConfirmTalkRequest(BaseModel):
     user_id: str
 
-CODEWORD_ADJECTIVES = [
-    "Swift", "Bold", "Bright", "Calm", "Clever", "Cosmic", "Daring", "Eager",
-    "Fierce", "Gentle", "Golden", "Grand", "Happy", "Keen", "Kind", "Lively",
-    "Lucky", "Noble", "Proud", "Quick", "Quiet", "Rapid", "Sharp", "Steady",
-    "True", "Vivid", "Warm", "Wild", "Wise", "Zesty"
-]
-CODEWORD_NOUNS = [
-    "Falcon", "Phoenix", "Otter", "Panda", "Tiger", "Dolphin", "Hawk",
-    "Jaguar", "Koala", "Lion", "Maple", "Oak", "Pine", "River", "Star",
-    "Thunder", "Wolf", "Coral", "Ember", "Frost", "Horizon", "Summit",
-    "Aurora", "Breeze", "Canyon", "Echo", "Flare", "Glacier", "Harbor", "Ivy"
+CODEWORD_PHRASES = [
+    "Banana Bread",
+    "86 Santa Fe Chicken",
+    "Suspicious Waffles",
+    "Secret Pancake",
+    "Toasted Marshmallow",
+    "Funky Cold Medina",
+    "Electric Boogaloo",
+    "Spicy Meatball",
+    "Rubber Ducky",
+    "Captain Crouton",
+    "Disco Potato",
+    "Flying Burrito",
+    "Mysterious Gravy",
+    "Crispy Pickles",
+    "Turbo Noodle",
+    "Sneaky Pretzel",
+    "Cosmic Burrito",
+    "Sassy Biscuit",
+    "Jumbo Shrimp Paradox",
+    "Undercover Baguette",
+    "Rogue Avocado",
+    "Purple Monkey Dishwasher",
+    "Extra Crispy",
+    "Nacho Average Person",
+    "Chaos Muffin",
+    "Stealth Taco",
+    "Legendary Grilled Cheese",
+    "Midnight Snack Attack",
+    "Double Dutch Waffle",
+    "Soup of the Day",
+    "Hold the Pickles",
+    "86 the Lobster",
+    "Behind the Walk-In",
+    "Hot Potato Incoming",
+    "Code Name Dumpling",
+    "Operation French Toast",
+    "Agent Orange Chicken",
+    "Mission Impossible Souffl\u00e9",
+    "The Gravy Train",
+    "Waffle House Rules",
 ]
 
 def generate_codeword():
-    adj = random.choice(CODEWORD_ADJECTIVES)
-    noun = random.choice(CODEWORD_NOUNS)
-    num = random.randint(10, 99)
-    return f"{adj} {noun} {num}"
+    return random.choice(CODEWORD_PHRASES)
 
 # --- Helpers ---
 
