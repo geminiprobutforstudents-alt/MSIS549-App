@@ -373,8 +373,21 @@ async function pollNotifications() {
     var data = await apiCall("GET", "/api/user-status?userID=" + userID);
     var newCount = data.unread_notifications || 0;
     if (newCount > lastSeenNotifCount && lastSeenNotifCount >= 0) {
-      var diff = newCount - lastSeenNotifCount;
-      sendBrowserNotification("Talkalot", "You have " + diff + " new notification" + (diff > 1 ? "s" : ""));
+      var notifs = await apiCall("GET", "/api/notifications?userID=" + userID);
+      var unseenNotifs = notifs.filter(function(n) { return !n.seen; });
+      var newOnes = unseenNotifs.slice(0, newCount - lastSeenNotifCount);
+      for (var i = 0; i < newOnes.length; i++) {
+        var n = newOnes[i];
+        if (n.notif_type === "match") {
+          showToast("Mutual interest match! You'll be notified when nearby.", "match");
+          sendBrowserNotification("Talkalot - New Match", n.message);
+        } else if (n.notif_type === "proximity") {
+          showToast("A match is nearby right now!", "match");
+          sendBrowserNotification("Talkalot - Nearby", n.message);
+        } else if (n.notif_type === "like") {
+          sendBrowserNotification("Talkalot", n.message);
+        }
+      }
     }
     lastSeenNotifCount = newCount;
     updateNotifBadge(newCount);
