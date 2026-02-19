@@ -4,6 +4,8 @@ let currentTags = [];
 let pollTimer = null;
 let browserNotifsEnabled = localStorage.getItem("talkalot_browser_notifs") === "true";
 let lastSeenNotifCount = 0;
+let activeCodewordMatchId = null;
+let codewordPollTimer = null;
 
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
@@ -303,17 +305,41 @@ async function loadNotifications() {
       container.innerHTML = '<p class="empty-state">No notifications yet.</p>';
       return;
     }
-    var labels = { like: "Like", match: "Match", proximity: "Nearby" };
+    var labels = { like: "Like", match: "Match", proximity: "Nearby", codeword: "Go!" };
     container.innerHTML = notifs.map(function(n) {
       var icon = labels[n.notif_type] || "Alert";
+      var extra = "";
+      if (n.notif_type === "proximity" && n.extra_data) {
+        if (n.extra_data.content) {
+          extra += '<div class="notif-post-preview">' + escapeHtml(n.extra_data.content) + '</div>';
+        }
+        if (n.extra_data.tags && n.extra_data.tags.length) {
+          extra += '<div class="notif-post-tags">' + n.extra_data.tags.map(function(t) {
+            return '<span class="tag">' + escapeHtml(t) + '</span>';
+          }).join("") + '</div>';
+        }
+        if (n.related_match_id) {
+          extra += '<button class="btn-confirm-talk" data-match-id="' + n.related_match_id + '">I want to talk!</button>';
+        }
+      }
+      if (n.notif_type === "codeword" && n.related_match_id) {
+        extra += '<button class="btn-view-codeword" data-match-id="' + n.related_match_id + '">View Codeword</button>';
+      }
       return '<div class="notif-card' + (n.seen ? '' : ' unread') + '">' +
         '<div class="notif-icon">' + icon + '</div>' +
         '<div class="notif-body">' +
         '<div class="notif-message">' + escapeHtml(n.message) + '</div>' +
+        extra +
         '<div class="notif-time">' + timeAgo(n.created_at) + '</div>' +
         '</div>' +
         '</div>';
     }).join("");
+    container.querySelectorAll(".btn-confirm-talk").forEach(function(btn) {
+      btn.addEventListener("click", function() { confirmTalk(btn.dataset.matchId, btn); });
+    });
+    container.querySelectorAll(".btn-view-codeword").forEach(function(btn) {
+      btn.addEventListener("click", function() { showCodewordForMatch(btn.dataset.matchId); });
+    });
   } catch (e) {
     console.error("Failed to load notifications", e);
   }
@@ -344,6 +370,23 @@ async function loadMatches() {
       var tagsHtml = m.other_user_tags.map(function(t) {
         return '<span class="tag">' + escapeHtml(t) + '</span>';
       }).join("");
+      var confirmArea = "";
+      if (m.codeword) {
+        confirmArea = '<div class="match-confirm-area">' +
+          '<button class="btn-view-codeword" data-match-id="' + m.match_id + '">View Codeword</button>' +
+          '</div>';
+      } else if (m.both_at_event) {
+        if (m.i_confirmed && !m.other_confirmed) {
+          confirmArea = '<div class="match-confirm-area">' +
+            '<button class="btn-confirm-talk waiting" disabled>Waiting for them...</button>' +
+            '<div class="confirm-status">You confirmed! Waiting for the other person.</div>' +
+            '</div>';
+        } else if (!m.i_confirmed) {
+          confirmArea = '<div class="match-confirm-area">' +
+            '<button class="btn-confirm-talk" data-match-id="' + m.match_id + '">I want to talk!</button>' +
+            '</div>';
+        }
+      }
       return '<div class="match-card">' +
         '<div class="match-header">' +
         '<span style="font-weight:600;">Mutual Match</span>' +
@@ -351,8 +394,15 @@ async function loadMatches() {
         '</div>' +
         (tagsHtml ? '<div class="match-tags">' + tagsHtml + '</div>' : '<p style="color:#b2bec3;font-size:13px;">No tags shared yet</p>') +
         '<div class="match-time">Matched ' + timeAgo(m.matched_at) + '</div>' +
+        confirmArea +
         '</div>';
     }).join("");
+    container.querySelectorAll(".btn-confirm-talk").forEach(function(btn) {
+      btn.addEventListener("click", function() { confirmTalk(btn.dataset.matchId, btn); });
+    });
+    container.querySelectorAll(".btn-view-codeword").forEach(function(btn) {
+      btn.addEventListener("click", function() { showCodewordForMatch(btn.dataset.matchId); });
+    });
   } catch (e) {
     showToast("Could not load matches", "error");
   }
@@ -382,8 +432,13 @@ async function pollNotifications() {
           showToast("Mutual interest match! You'll be notified when nearby.", "match");
           sendBrowserNotification("Talkalot - New Match", n.message);
         } else if (n.notif_type === "proximity") {
-          showToast("A match is nearby right now!", "match");
+          showToast(n.message, "match");
           sendBrowserNotification("Talkalot - Nearby", n.message);
+        } else if (n.notif_type === "codeword") {
+          if (n.extra_data && n.extra_data.codeword && n.related_match_id) {
+            showCodewordScreen(n.extra_data.codeword, n.related_match_id);
+          }
+          sendBrowserNotification("Talkalot - Go!", n.message);
         } else if (n.notif_type === "like") {
           sendBrowserNotification("Talkalot", n.message);
         }
@@ -403,6 +458,80 @@ function startPolling() {
   pollTimer = setInterval(pollNotifications, 15000);
 }
 
+async function confirmTalk(matchId, btn) {
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Confirming...";
+    }
+    var result = await apiCall("POST", "/api/matches/" + matchId + "/confirm", { user_id: userID });
+    if (result.both_confirmed && result.codeword) {
+      showCodewordScreen(result.codeword, matchId);
+    } else {
+      showToast("Confirmed! Waiting for them to confirm too.");
+      if (btn) {
+        btn.textContent = "Waiting for them...";
+        btn.classList.add("waiting");
+      }
+      startCodewordPoll(matchId);
+    }
+  } catch (e) {
+    showToast(e.message, "error");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "I want to talk!";
+    }
+  }
+}
+
+async function showCodewordForMatch(matchId) {
+  try {
+    var status = await apiCall("GET", "/api/matches/" + matchId + "/status?userID=" + userID);
+    if (status.both_confirmed && status.codeword) {
+      showCodewordScreen(status.codeword, matchId);
+    } else if (!status.i_confirmed) {
+      confirmTalk(matchId, null);
+    } else {
+      showToast("Waiting for the other person to confirm.");
+      startCodewordPoll(matchId);
+    }
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+function showCodewordScreen(codeword, matchId) {
+  activeCodewordMatchId = matchId;
+  document.getElementById("codeword-text").textContent = codeword;
+  showScreen("codeword-screen");
+}
+
+function exitCodewordScreen() {
+  activeCodewordMatchId = null;
+  if (codewordPollTimer) {
+    clearInterval(codewordPollTimer);
+    codewordPollTimer = null;
+  }
+  showScreen("main-screen");
+  loadMatches();
+}
+
+function startCodewordPoll(matchId) {
+  if (codewordPollTimer) clearInterval(codewordPollTimer);
+  codewordPollTimer = setInterval(async function() {
+    try {
+      var status = await apiCall("GET", "/api/matches/" + matchId + "/status?userID=" + userID);
+      if (status.both_confirmed && status.codeword) {
+        clearInterval(codewordPollTimer);
+        codewordPollTimer = null;
+        showCodewordScreen(status.codeword, matchId);
+      }
+    } catch (e) {
+      console.error("Codeword poll failed", e);
+    }
+  }, 5000);
+}
+
 function escapeHtml(text) {
   var d = document.createElement("div");
   d.textContent = text;
@@ -419,6 +548,7 @@ document.getElementById("btn-post").addEventListener("click", submitPost);
 document.getElementById("btn-refresh").addEventListener("click", loadPosts);
 document.getElementById("btn-mark-seen").addEventListener("click", markNotificationsSeen);
 document.getElementById("btn-refresh-matches").addEventListener("click", loadMatches);
+document.getElementById("btn-exit-codeword").addEventListener("click", exitCodewordScreen);
 
 document.querySelectorAll(".tab").forEach(function(tab) {
   tab.addEventListener("click", function() {

@@ -615,6 +615,139 @@ textarea:focus {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+.codeword-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0066ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 40px 24px;
+}
+
+.codeword-logo {
+  font-size: 32px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.codeword-instruction {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.codeword-word {
+  font-size: 48px;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  margin-bottom: 60px;
+}
+
+.btn-codeword-back {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  padding: 14px 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: absolute;
+  bottom: 60px;
+}
+
+.btn-codeword-back:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-confirm-talk {
+  background: #00b894;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+
+.btn-confirm-talk:hover {
+  background: #00a383;
+}
+
+.btn-confirm-talk:disabled {
+  background: #b2bec3;
+  cursor: not-allowed;
+}
+
+.btn-confirm-talk.waiting {
+  background: #fdcb6e;
+  color: #2d3436;
+}
+
+.btn-view-codeword {
+  background: #0066ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-view-codeword:hover {
+  background: #0055dd;
+}
+
+.notif-post-preview {
+  background: #f8f8fc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #2d3436;
+  line-height: 1.4;
+  border-left: 3px solid #6c5ce7;
+}
+
+.notif-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.match-confirm-area {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.confirm-status {
+  font-size: 12px;
+  color: #636e72;
+  margin-top: 6px;
+}
+
 @media (max-width: 480px) {
   #app {
     padding: 0 12px 80px;

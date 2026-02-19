@@ -104,6 +104,14 @@ Preferred communication style: Simple, everyday language.
 - `uvicorn` — ASGI server
 
 ## Recent Changes
+- Added confirmation flow for proximity matches: users can confirm they want to talk
+- When both users confirm, a shared codeword is generated and displayed on a full-screen blue page
+- Proximity notifications now show the other user's interest tags and the liked post content
+- Match model extended with user_a_confirmed, user_b_confirmed, and codeword fields
+- Notification model extended with related_match_id and extra_data (JSON) fields
+- New API endpoints: POST /api/matches/{id}/confirm, GET /api/matches/{id}/status
+- Matches tab shows confirm button (when both at event) and codeword link (when both confirmed)
+- Codeword polling (5s) when waiting for other user to confirm
 - Added Like, Match, and Notification models and database tables
 - Implemented mutual match detection on post likes
 - Added proximity notification system (triggers on join-fair, user-status polling, and after match)

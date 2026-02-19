@@ -1,6 +1,7 @@
 import os
 import logging
 import uuid
+import random
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -53,6 +54,9 @@ class Match(Base):
     user_b_id = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     proximity_notified = Column(Boolean, default=False)
+    user_a_confirmed = Column(Boolean, default=False)
+    user_b_confirmed = Column(Boolean, default=False)
+    codeword = Column(String, nullable=True)
     __table_args__ = (UniqueConstraint('user_a_id', 'user_b_id', name='uq_match_pair'),)
 
 class Notification(Base):
@@ -63,6 +67,8 @@ class Notification(Base):
     message = Column(String)
     related_user_id = Column(String, nullable=True)
     related_post_id = Column(String, nullable=True)
+    related_match_id = Column(String, nullable=True)
+    extra_data = Column(JSON, nullable=True)
     seen = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -99,6 +105,8 @@ class NotificationResponse(BaseModel):
     message: str
     seen: bool
     created_at: str
+    related_match_id: Optional[str] = None
+    extra_data: Optional[dict] = None
 
 class MatchResponse(BaseModel):
     match_id: str
@@ -106,6 +114,33 @@ class MatchResponse(BaseModel):
     other_user_tags: List[str]
     both_at_event: bool
     matched_at: str
+    user_a_confirmed: bool = False
+    user_b_confirmed: bool = False
+    i_confirmed: bool = False
+    other_confirmed: bool = False
+    codeword: Optional[str] = None
+
+class ConfirmTalkRequest(BaseModel):
+    user_id: str
+
+CODEWORD_ADJECTIVES = [
+    "Swift", "Bold", "Bright", "Calm", "Clever", "Cosmic", "Daring", "Eager",
+    "Fierce", "Gentle", "Golden", "Grand", "Happy", "Keen", "Kind", "Lively",
+    "Lucky", "Noble", "Proud", "Quick", "Quiet", "Rapid", "Sharp", "Steady",
+    "True", "Vivid", "Warm", "Wild", "Wise", "Zesty"
+]
+CODEWORD_NOUNS = [
+    "Falcon", "Phoenix", "Otter", "Panda", "Tiger", "Dolphin", "Hawk",
+    "Jaguar", "Koala", "Lion", "Maple", "Oak", "Pine", "River", "Star",
+    "Thunder", "Wolf", "Coral", "Ember", "Frost", "Horizon", "Summit",
+    "Aurora", "Breeze", "Canyon", "Echo", "Flare", "Glacier", "Harbor", "Ivy"
+]
+
+def generate_codeword():
+    adj = random.choice(CODEWORD_ADJECTIVES)
+    noun = random.choice(CODEWORD_NOUNS)
+    num = random.randint(10, 99)
+    return f"{adj} {noun} {num}"
 
 # --- Helpers ---
 
@@ -142,6 +177,15 @@ def check_and_create_match(db: Session, liker_id: str, post_owner_id: str):
         return new_match
     return None
 
+def get_shared_post_for_match(db: Session, user_id: str, other_id: str):
+    liked_post = db.query(Post).join(Like, Like.post_id == Post.id).filter(
+        Like.user_id == user_id,
+        Post.user_id == other_id
+    ).first()
+    if liked_post:
+        return {"post_id": liked_post.id, "content": liked_post.content, "tags": liked_post.tags or []}
+    return None
+
 def check_proximity_notifications(db: Session, user_id: str):
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.inside_fair:
@@ -158,12 +202,21 @@ def check_proximity_notifications(db: Session, user_id: str):
         if other_user and other_user.inside_fair:
             m.proximity_notified = True
             for uid in [user_id, other_id]:
+                target_other = other_id if uid == user_id else user_id
+                liked_post_info = get_shared_post_for_match(db, uid, target_other)
+                if liked_post_info and liked_post_info.get("tags"):
+                    tag_str = ", ".join(liked_post_info["tags"])
+                    msg = f"Somebody who's interested in '{tag_str}' is nearby!"
+                else:
+                    msg = "Someone who shares your interests is nearby!"
                 notif = Notification(
                     id=str(uuid.uuid4()),
                     user_id=uid,
                     notif_type="proximity",
-                    message="Someone who shares your interests is nearby right now! Look around and start a conversation.",
-                    related_user_id=user_id if uid == other_id else other_id
+                    message=msg,
+                    related_user_id=target_other,
+                    related_match_id=m.id,
+                    extra_data=liked_post_info
                 )
                 db.add(notif)
     db.commit()
@@ -359,7 +412,9 @@ def get_notifications(userID: str):
             notif_type=n.notif_type,
             message=n.message,
             seen=n.seen,
-            created_at=n.created_at.isoformat()
+            created_at=n.created_at.isoformat(),
+            related_match_id=n.related_match_id,
+            extra_data=n.extra_data
         ) for n in notifs
     ]
     db.close()
@@ -394,13 +449,81 @@ def get_matches(userID: str):
         other_user = db.query(User).filter(User.id == other_id).first()
         other_tags = other_user.interest_tags if other_user and other_user.interest_tags else []
         both_at_event = (user.inside_fair and other_user.inside_fair) if other_user else False
+        i_am_a = (m.user_a_id == userID)
+        i_confirmed = m.user_a_confirmed if i_am_a else m.user_b_confirmed
+        other_confirmed = m.user_b_confirmed if i_am_a else m.user_a_confirmed
+        show_codeword = m.codeword if (m.user_a_confirmed and m.user_b_confirmed) else None
         result.append(MatchResponse(
             match_id=m.id,
             other_user_id=other_id,
             other_user_tags=other_tags,
             both_at_event=both_at_event,
-            matched_at=m.created_at.isoformat()
+            matched_at=m.created_at.isoformat(),
+            user_a_confirmed=m.user_a_confirmed,
+            user_b_confirmed=m.user_b_confirmed,
+            i_confirmed=i_confirmed,
+            other_confirmed=other_confirmed,
+            codeword=show_codeword
         ))
+    db.close()
+    return result
+
+@app.post("/api/matches/{match_id}/confirm")
+def confirm_talk(match_id: str, req: ConfirmTalkRequest):
+    db = SessionLocal()
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        db.close()
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    if req.user_id not in [match.user_a_id, match.user_b_id]:
+        db.close()
+        raise HTTPException(status_code=403, detail="Not part of this match")
+
+    if req.user_id == match.user_a_id:
+        match.user_a_confirmed = True
+    else:
+        match.user_b_confirmed = True
+
+    if match.user_a_confirmed and match.user_b_confirmed and not match.codeword:
+        match.codeword = generate_codeword()
+        for uid in [match.user_a_id, match.user_b_id]:
+            notif = Notification(
+                id=str(uuid.uuid4()),
+                user_id=uid,
+                notif_type="codeword",
+                message=f"You both want to talk! Your codeword is: {match.codeword}",
+                related_match_id=match.id,
+                extra_data={"codeword": match.codeword}
+            )
+            db.add(notif)
+
+    db.commit()
+
+    both_confirmed = match.user_a_confirmed and match.user_b_confirmed
+    result = {
+        "status": "confirmed",
+        "both_confirmed": both_confirmed,
+        "codeword": match.codeword if both_confirmed else None
+    }
+    db.close()
+    return result
+
+@app.get("/api/matches/{match_id}/status")
+def match_status(match_id: str, userID: str):
+    db = SessionLocal()
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        db.close()
+        raise HTTPException(status_code=404, detail="Match not found")
+    both_confirmed = match.user_a_confirmed and match.user_b_confirmed
+    i_am_a = (match.user_a_id == userID)
+    result = {
+        "i_confirmed": match.user_a_confirmed if i_am_a else match.user_b_confirmed,
+        "other_confirmed": match.user_b_confirmed if i_am_a else match.user_a_confirmed,
+        "both_confirmed": both_confirmed,
+        "codeword": match.codeword if both_confirmed else None
+    }
     db.close()
     return result
 
