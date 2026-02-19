@@ -2,6 +2,8 @@ let userID = localStorage.getItem("talkalot_userID") || null;
 let insideFair = false;
 let currentTags = [];
 let pollTimer = null;
+let browserNotifsEnabled = localStorage.getItem("talkalot_browser_notifs") === "true";
+let lastSeenNotifCount = 0;
 
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
@@ -49,13 +51,56 @@ async function apiCall(method, path, body) {
   return res.json();
 }
 
+function sendBrowserNotification(title, body) {
+  if (!browserNotifsEnabled) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    new Notification(title, { body: body, icon: "/static/icon.png" });
+  } catch (e) {
+    console.error("Browser notification failed", e);
+  }
+}
+
+async function enableBrowserNotifs() {
+  if (!("Notification" in window)) {
+    showToast("Your browser does not support notifications. You'll see alerts on screen instead.");
+    browserNotifsEnabled = false;
+    localStorage.setItem("talkalot_browser_notifs", "false");
+    showScreen("fair-screen");
+    return;
+  }
+  try {
+    var permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      browserNotifsEnabled = true;
+      localStorage.setItem("talkalot_browser_notifs", "true");
+      showToast("Notifications enabled!");
+    } else {
+      browserNotifsEnabled = false;
+      localStorage.setItem("talkalot_browser_notifs", "false");
+      showToast("Notifications declined. You'll see alerts on screen instead.");
+    }
+  } catch (e) {
+    browserNotifsEnabled = false;
+    localStorage.setItem("talkalot_browser_notifs", "false");
+    showToast("Could not enable notifications. You'll see alerts on screen instead.");
+  }
+  showScreen("fair-screen");
+}
+
+function skipBrowserNotifs() {
+  browserNotifsEnabled = false;
+  localStorage.setItem("talkalot_browser_notifs", "false");
+  showScreen("fair-screen");
+}
+
 async function register() {
   try {
     var data = await apiCall("POST", "/api/register");
     userID = data.userID;
     localStorage.setItem("talkalot_userID", userID);
-    updateStatus("Registered");
-    showScreen("fair-screen");
+    updateStatus("");
+    showScreen("notif-pref-screen");
   } catch (e) {
     showToast(e.message, "error");
   }
@@ -241,6 +286,7 @@ async function handleLike(btn) {
       var result = await apiCall("POST", "/api/posts/" + postId + "/like", { user_id: userID });
       if (result.matched) {
         showToast("Mutual interest match! You'll be notified when nearby.", "match");
+        sendBrowserNotification("Talkalot - New Match", "You have a new mutual interest match!");
       }
     }
     loadPosts();
@@ -326,7 +372,13 @@ function updateNotifBadge(count) {
 async function pollNotifications() {
   try {
     var data = await apiCall("GET", "/api/user-status?userID=" + userID);
-    updateNotifBadge(data.unread_notifications || 0);
+    var newCount = data.unread_notifications || 0;
+    if (newCount > lastSeenNotifCount && lastSeenNotifCount >= 0) {
+      var diff = newCount - lastSeenNotifCount;
+      sendBrowserNotification("Talkalot", "You have " + diff + " new notification" + (diff > 1 ? "s" : ""));
+    }
+    lastSeenNotifCount = newCount;
+    updateNotifBadge(newCount);
     insideFair = data.inside_fair;
     updateEventBanner();
   } catch (e) {
@@ -346,6 +398,8 @@ function escapeHtml(text) {
 }
 
 document.getElementById("btn-register").addEventListener("click", register);
+document.getElementById("btn-enable-notifs").addEventListener("click", enableBrowserNotifs);
+document.getElementById("btn-skip-notifs").addEventListener("click", skipBrowserNotifs);
 document.getElementById("btn-join-location").addEventListener("click", joinWithLocation);
 document.getElementById("btn-join-manual").addEventListener("click", joinFair);
 document.getElementById("btn-skip-join").addEventListener("click", skipJoin);

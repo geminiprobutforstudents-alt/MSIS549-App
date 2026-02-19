@@ -21,10 +21,12 @@ Preferred communication style: Simple, everyday language.
 - **Entry point**: `static/index.html` served at `/`
 - **Screens**:
   1. Welcome screen — "Get Started" button to register
-  2. Event join screen — "I'm Here" button to mark presence at event
-  3. Main screen — Four tabs: Feed, New Post, Alerts, Matches
-- **State**: User ID stored in localStorage for session persistence
+  2. Notification preference screen — Choose browser notifications or on-screen only
+  3. Event join screen — Use location or manual "I'm Here" button, or skip
+  4. Main screen — Four tabs: Feed, New Post, Alerts, Matches
+- **State**: User ID and notification preference stored in localStorage
 - **Features**:
+  - Browser notification support (optional, prompted during registration)
   - Event presence toggle (join/leave event banner)
   - Interest post creation with text content and tags
   - Tag suggestions and custom tag input via Enter key
