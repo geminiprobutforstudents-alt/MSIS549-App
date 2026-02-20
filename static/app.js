@@ -221,6 +221,7 @@ async function checkUserStatus() {
     updateEventBanner();
     updateNotifBadge(data.unread_notifications || 0);
     loadPosts();
+    loadRecommendedTags();
     startPolling();
   } catch (e) {
     localStorage.removeItem("talkalot_userID");
@@ -303,12 +304,62 @@ function timeAgo(dateStr) {
   return diffDay + "d ago";
 }
 
+async function loadRecommendedTags() {
+  try {
+    var data = await apiCall("GET", "/api/recommended-tags?userID=" + userID);
+    var section = document.getElementById("recommended-tags-section");
+    var list = document.getElementById("recommended-tags-list");
+    if (data.tags && data.tags.length > 0) {
+      list.innerHTML = data.tags.map(function(t) {
+        return '<span class="recommended-tag" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + '</span>';
+      }).join("");
+      section.classList.remove("hidden");
+      list.querySelectorAll(".recommended-tag").forEach(function(el) {
+        el.addEventListener("click", function() {
+          filterFeedByTag(el.dataset.tag);
+        });
+      });
+    } else {
+      section.classList.add("hidden");
+    }
+  } catch (e) {
+    console.error("Failed to load recommended tags", e);
+  }
+}
+
+var activeFeedFilter = null;
+
+function filterFeedByTag(tag) {
+  if (activeFeedFilter === tag) {
+    activeFeedFilter = null;
+  } else {
+    activeFeedFilter = tag;
+  }
+  document.querySelectorAll(".recommended-tag").forEach(function(el) {
+    if (el.dataset.tag === activeFeedFilter) {
+      el.style.background = "#6c5ce7";
+      el.style.color = "#fff";
+      el.style.borderColor = "#6c5ce7";
+    } else {
+      el.style.background = "";
+      el.style.color = "";
+      el.style.borderColor = "";
+    }
+  });
+  loadPosts();
+}
+
 async function loadPosts() {
   try {
     var posts = await apiCall("GET", "/api/posts?userID=" + userID);
     var container = document.getElementById("posts-list");
+    if (activeFeedFilter) {
+      posts = posts.filter(function(p) {
+        return p.tags && p.tags.indexOf(activeFeedFilter) !== -1;
+      });
+    }
     if (!posts.length) {
-      container.innerHTML = '<p class="empty-state">No posts yet. Share your interests first!</p>';
+      container.innerHTML = '<p class="empty-state">' + (activeFeedFilter ? 'No posts with this tag yet.' : 'No posts yet. Share your interests first!') + '</p>';
       return;
     }
     container.innerHTML = posts.map(function(p) {
@@ -663,7 +714,7 @@ document.querySelectorAll(".tab").forEach(function(tab) {
     document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
     if (tab.dataset.tab === "notifications") loadNotifications();
     if (tab.dataset.tab === "matches") loadMatches();
-    if (tab.dataset.tab === "feed") loadPosts();
+    if (tab.dataset.tab === "feed") { loadPosts(); loadRecommendedTags(); }
   });
 });
 

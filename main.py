@@ -544,6 +544,34 @@ def match_status(match_id: str, userID: str):
     return result
 
 
+@app.get("/api/recommended-tags")
+def recommended_tags(userID: str):
+    db = SessionLocal()
+    from collections import Counter
+
+    global_tags = Counter()
+    all_posts = db.query(Post).all()
+    for p in all_posts:
+        if p.tags:
+            for t in p.tags:
+                global_tags[t] += 1
+
+    user_tags = Counter()
+    user_posts = db.query(Post).filter(Post.user_id == userID).all()
+    for p in user_posts:
+        if p.tags:
+            for t in p.tags:
+                user_tags[t] += 1
+
+    scored = Counter()
+    all_tag_set = set(list(global_tags.keys()) + list(user_tags.keys()))
+    for t in all_tag_set:
+        scored[t] = global_tags.get(t, 0) + (user_tags.get(t, 0) * 3)
+
+    top = [tag for tag, _ in scored.most_common(4)]
+    db.close()
+    return {"tags": top}
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
