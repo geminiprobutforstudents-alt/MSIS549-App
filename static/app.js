@@ -6,6 +6,8 @@ let browserNotifsEnabled = localStorage.getItem("talkalot_browser_notifs") === "
 let lastSeenNotifCount = 0;
 let activeCodewordMatchId = null;
 let codewordPollTimer = null;
+let dialogQueue = [];
+let dialogOpen = false;
 
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
@@ -20,6 +22,58 @@ function showToast(msg, type) {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(function() { t.remove(); }, 4000);
+}
+
+function showNotifDialog(opts) {
+  dialogQueue.push(opts);
+  if (!dialogOpen) processDialogQueue();
+}
+
+function processDialogQueue() {
+  if (dialogQueue.length === 0) {
+    dialogOpen = false;
+    return;
+  }
+  dialogOpen = true;
+  var opts = dialogQueue.shift();
+  var overlay = document.getElementById("notif-dialog-overlay");
+  var iconEl = document.getElementById("notif-dialog-icon");
+  var titleEl = document.getElementById("notif-dialog-title");
+  var msgEl = document.getElementById("notif-dialog-message");
+  var extraEl = document.getElementById("notif-dialog-extra");
+  var actionBtn = document.getElementById("notif-dialog-action");
+  var dismissBtn = document.getElementById("notif-dialog-dismiss");
+
+  iconEl.textContent = opts.icon || "Alert";
+  iconEl.className = "dialog-icon" + (opts.iconClass ? " " + opts.iconClass : "");
+  titleEl.textContent = opts.title || "";
+  msgEl.textContent = opts.message || "";
+  extraEl.innerHTML = opts.extraHtml || "";
+  dismissBtn.textContent = opts.dismissText || "OK";
+
+  if (opts.actionText && opts.onAction) {
+    actionBtn.textContent = opts.actionText;
+    actionBtn.classList.remove("hidden");
+    actionBtn.onclick = function() {
+      dismissDialog();
+      opts.onAction();
+    };
+  } else {
+    actionBtn.classList.add("hidden");
+    actionBtn.onclick = null;
+  }
+
+  dismissBtn.onclick = function() {
+    dismissDialog();
+    if (opts.onDismiss) opts.onDismiss();
+  };
+
+  overlay.classList.remove("hidden");
+}
+
+function dismissDialog() {
+  document.getElementById("notif-dialog-overlay").classList.add("hidden");
+  setTimeout(processDialogQueue, 200);
 }
 
 function updateStatus(text) {
@@ -286,7 +340,13 @@ async function handleLike(btn) {
     } else {
       var result = await apiCall("POST", "/api/posts/" + postId + "/like", { user_id: userID });
       if (result.matched) {
-        showToast("Mutual interest match! You'll be notified when nearby.", "match");
+        showNotifDialog({
+          icon: "Match",
+          iconClass: "icon-match",
+          title: "New Match!",
+          message: "You have a mutual interest match! You'll be notified when you're both at the event.",
+          dismissText: "Got it"
+        });
         sendBrowserNotification("Talkalot - New Match", "You have a new mutual interest match!");
       }
     }
@@ -429,10 +489,37 @@ async function pollNotifications() {
       for (var i = 0; i < newOnes.length; i++) {
         var n = newOnes[i];
         if (n.notif_type === "match") {
-          showToast("Mutual interest match! You'll be notified when nearby.", "match");
+          showNotifDialog({
+            icon: "Match",
+            iconClass: "icon-match",
+            title: "New Match!",
+            message: n.message,
+            dismissText: "Got it"
+          });
           sendBrowserNotification("Talkalot - New Match", n.message);
         } else if (n.notif_type === "proximity") {
-          showToast(n.message, "match");
+          var extraHtml = "";
+          if (n.extra_data) {
+            if (n.extra_data.content) {
+              extraHtml += '<div class="notif-post-preview">' + escapeHtml(n.extra_data.content) + '</div>';
+            }
+            if (n.extra_data.tags && n.extra_data.tags.length) {
+              extraHtml += '<div class="notif-post-tags">' + n.extra_data.tags.map(function(t) {
+                return '<span class="tag">' + escapeHtml(t) + '</span>';
+              }).join("") + '</div>';
+            }
+          }
+          var matchIdForDialog = n.related_match_id;
+          showNotifDialog({
+            icon: "Nearby",
+            iconClass: "icon-proximity",
+            title: "Someone's Nearby!",
+            message: n.message,
+            extraHtml: extraHtml,
+            actionText: matchIdForDialog ? "I want to talk!" : null,
+            onAction: matchIdForDialog ? (function(mid) { return function() { confirmTalk(mid, null); }; })(matchIdForDialog) : null,
+            dismissText: "Not now"
+          });
           sendBrowserNotification("Talkalot - Nearby", n.message);
         } else if (n.notif_type === "codeword") {
           if (n.extra_data && n.extra_data.codeword && n.related_match_id) {
@@ -440,6 +527,13 @@ async function pollNotifications() {
           }
           sendBrowserNotification("Talkalot - Go!", n.message);
         } else if (n.notif_type === "like") {
+          showNotifDialog({
+            icon: "Like",
+            iconClass: "icon-like",
+            title: "Someone liked your post!",
+            message: n.message,
+            dismissText: "OK"
+          });
           sendBrowserNotification("Talkalot", n.message);
         }
       }
