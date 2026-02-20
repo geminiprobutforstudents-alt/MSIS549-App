@@ -21,6 +21,7 @@ Base = declarative_base()
 
 # --- Models ---
 
+
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, index=True)
@@ -30,6 +31,7 @@ class User(Base):
     free_text_interests = Column(String, nullable=True)
     inside_fair = Column(Boolean, default=False)
 
+
 class Post(Base):
     __tablename__ = "posts"
     id = Column(String, primary_key=True, index=True)
@@ -38,6 +40,7 @@ class Post(Base):
     tags = Column(JSON, default=[])
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 class Like(Base):
     __tablename__ = "likes"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -45,7 +48,10 @@ class Like(Base):
     post_id = Column(String, index=True)
     post_owner_id = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    __table_args__ = (UniqueConstraint('user_id', 'post_id', name='uq_user_post_like'),)
+    __table_args__ = (UniqueConstraint('user_id',
+                                       'post_id',
+                                       name='uq_user_post_like'), )
+
 
 class Match(Base):
     __tablename__ = "matches"
@@ -57,7 +63,10 @@ class Match(Base):
     user_a_confirmed = Column(Boolean, default=False)
     user_b_confirmed = Column(Boolean, default=False)
     codeword = Column(String, nullable=True)
-    __table_args__ = (UniqueConstraint('user_a_id', 'user_b_id', name='uq_match_pair'),)
+    __table_args__ = (UniqueConstraint('user_a_id',
+                                       'user_b_id',
+                                       name='uq_match_pair'), )
+
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -72,20 +81,25 @@ class Notification(Base):
     seen = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 Base.metadata.create_all(bind=engine)
 
 # --- Schemas ---
 
+
 class RegisterResponse(BaseModel):
     userID: str
 
+
 class JoinFairRequest(BaseModel):
     userID: str
+
 
 class PostCreate(BaseModel):
     user_id: str
     content: str
     tags: List[str]
+
 
 class PostResponse(BaseModel):
     id: str
@@ -96,8 +110,10 @@ class PostResponse(BaseModel):
     like_count: int = 0
     liked_by_me: bool = False
 
+
 class LikeRequest(BaseModel):
     user_id: str
+
 
 class NotificationResponse(BaseModel):
     id: str
@@ -107,6 +123,7 @@ class NotificationResponse(BaseModel):
     created_at: str
     related_match_id: Optional[str] = None
     extra_data: Optional[dict] = None
+
 
 class MatchResponse(BaseModel):
     match_id: str
@@ -120,70 +137,39 @@ class MatchResponse(BaseModel):
     other_confirmed: bool = False
     codeword: Optional[str] = None
 
+
 class ConfirmTalkRequest(BaseModel):
     user_id: str
+
 
 CODEWORD_PHRASES = [
     "Banana Bread",
     "86 Santa Fe Chicken",
-    "Suspicious Waffles",
-    "Secret Pancake",
-    "Toasted Marshmallow",
-    "Funky Cold Medina",
-    "Electric Boogaloo",
-    "Spicy Meatball",
-    "Rubber Ducky",
-    "Captain Crouton",
-    "Disco Potato",
-    "Flying Burrito",
-    "Mysterious Gravy",
-    "Crispy Pickles",
-    "Turbo Noodle",
-    "Sneaky Pretzel",
-    "Cosmic Burrito",
-    "Sassy Biscuit",
-    "Jumbo Shrimp Paradox",
-    "Undercover Baguette",
-    "Rogue Avocado",
-    "Purple Monkey Dishwasher",
-    "Extra Crispy",
-    "Nacho Average Person",
-    "Chaos Muffin",
-    "Stealth Taco",
-    "Legendary Grilled Cheese",
-    "Midnight Snack Attack",
-    "Double Dutch Waffle",
-    "Soup of the Day",
-    "Hold the Pickles",
-    "86 the Lobster",
-    "Behind the Walk-In",
-    "Hot Potato Incoming",
-    "Code Name Dumpling",
-    "Operation French Toast",
+    "Gimme a Cheese Pizza With Nothin!",
     "Agent Orange Chicken",
-    "Mission Impossible Souffl\u00e9",
-    "The Gravy Train",
-    "Waffle House Rules",
 ]
+
 
 def generate_codeword():
     return random.choice(CODEWORD_PHRASES)
 
+
 # --- Helpers ---
+
 
 def normalize_match_pair(a: str, b: str):
     return (min(a, b), max(a, b))
 
+
 def check_and_create_match(db: Session, liker_id: str, post_owner_id: str):
     ua, ub = normalize_match_pair(liker_id, post_owner_id)
-    existing = db.query(Match).filter(Match.user_a_id == ua, Match.user_b_id == ub).first()
+    existing = db.query(Match).filter(Match.user_a_id == ua,
+                                      Match.user_b_id == ub).first()
     if existing:
         return existing
 
     reciprocal = db.query(Like).join(Post, Like.post_id == Post.id).filter(
-        Like.user_id == post_owner_id,
-        Post.user_id == liker_id
-    ).first()
+        Like.user_id == post_owner_id, Post.user_id == liker_id).first()
 
     if reciprocal:
         new_match = Match(id=str(uuid.uuid4()), user_a_id=ua, user_b_id=ub)
@@ -195,33 +181,36 @@ def check_and_create_match(db: Session, liker_id: str, post_owner_id: str):
                 id=str(uuid.uuid4()),
                 user_id=uid,
                 notif_type="match",
-                message="You have a new mutual interest match! You'll be notified when you're nearby.",
-                related_user_id=other
-            )
+                message=
+                "You have a new mutual interest match! You'll be notified when you're nearby.",
+                related_user_id=other)
             db.add(notif)
 
         db.commit()
         return new_match
     return None
 
+
 def get_shared_post_for_match(db: Session, user_id: str, other_id: str):
     liked_post = db.query(Post).join(Like, Like.post_id == Post.id).filter(
-        Like.user_id == user_id,
-        Post.user_id == other_id
-    ).first()
+        Like.user_id == user_id, Post.user_id == other_id).first()
     if liked_post:
-        return {"post_id": liked_post.id, "content": liked_post.content, "tags": liked_post.tags or []}
+        return {
+            "post_id": liked_post.id,
+            "content": liked_post.content,
+            "tags": liked_post.tags or []
+        }
     return None
+
 
 def check_proximity_notifications(db: Session, user_id: str):
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.inside_fair:
         return
 
-    matches = db.query(Match).filter(
-        Match.proximity_notified == False,
-        ((Match.user_a_id == user_id) | (Match.user_b_id == user_id))
-    ).all()
+    matches = db.query(Match).filter(Match.proximity_notified == False,
+                                     ((Match.user_a_id == user_id) |
+                                      (Match.user_b_id == user_id))).all()
 
     for m in matches:
         other_id = m.user_b_id if m.user_a_id == user_id else m.user_a_id
@@ -230,27 +219,28 @@ def check_proximity_notifications(db: Session, user_id: str):
             m.proximity_notified = True
             for uid in [user_id, other_id]:
                 target_other = other_id if uid == user_id else user_id
-                liked_post_info = get_shared_post_for_match(db, uid, target_other)
+                liked_post_info = get_shared_post_for_match(
+                    db, uid, target_other)
                 if liked_post_info and liked_post_info.get("tags"):
                     tag_str = ", ".join(liked_post_info["tags"])
                     msg = f"Somebody who's interested in '{tag_str}' is nearby!"
                 else:
                     msg = "Someone who shares your interests is nearby!"
-                notif = Notification(
-                    id=str(uuid.uuid4()),
-                    user_id=uid,
-                    notif_type="proximity",
-                    message=msg,
-                    related_user_id=target_other,
-                    related_match_id=m.id,
-                    extra_data=liked_post_info
-                )
+                notif = Notification(id=str(uuid.uuid4()),
+                                     user_id=uid,
+                                     notif_type="proximity",
+                                     message=msg,
+                                     related_user_id=target_other,
+                                     related_match_id=m.id,
+                                     extra_data=liked_post_info)
                 db.add(notif)
     db.commit()
+
 
 # --- App ---
 
 app = FastAPI(title="Talkalot")
+
 
 @app.post("/api/register", response_model=RegisterResponse)
 def register():
@@ -262,6 +252,7 @@ def register():
     db.close()
     logger.info(f"Registered new user: {user_id}")
     return {"userID": user_id}
+
 
 @app.post("/api/join-fair")
 def join_fair(req: JoinFairRequest):
@@ -278,6 +269,7 @@ def join_fair(req: JoinFairRequest):
     logger.info(f"User {req.userID} joined the fair")
     return {"status": "success", "inside_fair": True}
 
+
 @app.post("/api/leave-fair")
 def leave_fair(req: JoinFairRequest):
     db = SessionLocal()
@@ -290,6 +282,7 @@ def leave_fair(req: JoinFairRequest):
     db.close()
     return {"status": "success", "inside_fair": False}
 
+
 @app.get("/api/user-status")
 def user_status(userID: str):
     db = SessionLocal()
@@ -300,13 +293,12 @@ def user_status(userID: str):
     user.last_seen = datetime.utcnow()
     db.commit()
     check_proximity_notifications(db, userID)
-    unread = db.query(Notification).filter(
-        Notification.user_id == userID,
-        Notification.seen == False
-    ).count()
+    unread = db.query(Notification).filter(Notification.user_id == userID,
+                                           Notification.seen == False).count()
     result = {"inside_fair": user.inside_fair, "unread_notifications": unread}
     db.close()
     return result
+
 
 @app.post("/api/posts", response_model=PostResponse)
 def create_post(post: PostCreate):
@@ -315,27 +307,24 @@ def create_post(post: PostCreate):
     if not user:
         db.close()
         raise HTTPException(status_code=404, detail="User not found")
-    new_post = Post(
-        id=str(uuid.uuid4()),
-        user_id=post.user_id,
-        content=post.content,
-        tags=post.tags,
-        created_at=datetime.utcnow()
-    )
+    new_post = Post(id=str(uuid.uuid4()),
+                    user_id=post.user_id,
+                    content=post.content,
+                    tags=post.tags,
+                    created_at=datetime.utcnow())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    result = PostResponse(
-        id=new_post.id,
-        user_id=new_post.user_id,
-        content=new_post.content,
-        tags=new_post.tags,
-        created_at=new_post.created_at.isoformat(),
-        like_count=0,
-        liked_by_me=False
-    )
+    result = PostResponse(id=new_post.id,
+                          user_id=new_post.user_id,
+                          content=new_post.content,
+                          tags=new_post.tags,
+                          created_at=new_post.created_at.isoformat(),
+                          like_count=0,
+                          liked_by_me=False)
     db.close()
     return result
+
 
 @app.get("/api/posts", response_model=List[PostResponse])
 def get_posts(userID: str):
@@ -349,19 +338,18 @@ def get_posts(userID: str):
     for p in posts:
         like_count = db.query(Like).filter(Like.post_id == p.id).count()
         liked_by_me = db.query(Like).filter(
-            Like.post_id == p.id, Like.user_id == userID
-        ).first() is not None
-        result.append(PostResponse(
-            id=p.id,
-            user_id=p.user_id,
-            content=p.content,
-            tags=p.tags,
-            created_at=p.created_at.isoformat(),
-            like_count=like_count,
-            liked_by_me=liked_by_me
-        ))
+            Like.post_id == p.id, Like.user_id == userID).first() is not None
+        result.append(
+            PostResponse(id=p.id,
+                         user_id=p.user_id,
+                         content=p.content,
+                         tags=p.tags,
+                         created_at=p.created_at.isoformat(),
+                         like_count=like_count,
+                         liked_by_me=liked_by_me))
     db.close()
     return result
+
 
 @app.post("/api/posts/{post_id}/like")
 def like_post(post_id: str, req: LikeRequest):
@@ -376,34 +364,30 @@ def like_post(post_id: str, req: LikeRequest):
         raise HTTPException(status_code=404, detail="Post not found")
     if post.user_id == req.user_id:
         db.close()
-        raise HTTPException(status_code=400, detail="Cannot like your own post")
+        raise HTTPException(status_code=400,
+                            detail="Cannot like your own post")
 
-    existing = db.query(Like).filter(
-        Like.user_id == req.user_id, Like.post_id == post_id
-    ).first()
+    existing = db.query(Like).filter(Like.user_id == req.user_id,
+                                     Like.post_id == post_id).first()
     if existing:
         db.close()
         return {"status": "already_liked"}
 
-    new_like = Like(
-        id=str(uuid.uuid4()),
-        user_id=req.user_id,
-        post_id=post_id,
-        post_owner_id=post.user_id
-    )
+    new_like = Like(id=str(uuid.uuid4()),
+                    user_id=req.user_id,
+                    post_id=post_id,
+                    post_owner_id=post.user_id)
     db.add(new_like)
     db.commit()
 
     post_owner = db.query(User).filter(User.id == post.user_id).first()
     if post_owner and post_owner.inside_fair:
-        notif = Notification(
-            id=str(uuid.uuid4()),
-            user_id=post.user_id,
-            notif_type="like",
-            message="Someone liked your interest post!",
-            related_user_id=req.user_id,
-            related_post_id=post_id
-        )
+        notif = Notification(id=str(uuid.uuid4()),
+                             user_id=post.user_id,
+                             notif_type="like",
+                             message="Someone liked your interest post!",
+                             related_user_id=req.user_id,
+                             related_post_id=post_id)
         db.add(notif)
         db.commit()
 
@@ -415,48 +399,48 @@ def like_post(post_id: str, req: LikeRequest):
     db.close()
     return {"status": "liked", "matched": match is not None}
 
+
 @app.post("/api/posts/{post_id}/unlike")
 def unlike_post(post_id: str, req: LikeRequest):
     db = SessionLocal()
-    existing = db.query(Like).filter(
-        Like.user_id == req.user_id, Like.post_id == post_id
-    ).first()
+    existing = db.query(Like).filter(Like.user_id == req.user_id,
+                                     Like.post_id == post_id).first()
     if existing:
         db.delete(existing)
         db.commit()
     db.close()
     return {"status": "unliked"}
 
+
 @app.get("/api/notifications", response_model=List[NotificationResponse])
 def get_notifications(userID: str):
     db = SessionLocal()
     notifs = db.query(Notification).filter(
-        Notification.user_id == userID
-    ).order_by(Notification.created_at.desc()).limit(50).all()
+        Notification.user_id == userID).order_by(
+            Notification.created_at.desc()).limit(50).all()
     result = [
-        NotificationResponse(
-            id=n.id,
-            notif_type=n.notif_type,
-            message=n.message,
-            seen=n.seen,
-            created_at=n.created_at.isoformat(),
-            related_match_id=n.related_match_id,
-            extra_data=n.extra_data
-        ) for n in notifs
+        NotificationResponse(id=n.id,
+                             notif_type=n.notif_type,
+                             message=n.message,
+                             seen=n.seen,
+                             created_at=n.created_at.isoformat(),
+                             related_match_id=n.related_match_id,
+                             extra_data=n.extra_data) for n in notifs
     ]
     db.close()
     return result
 
+
 @app.post("/api/notifications/mark-seen")
 def mark_notifications_seen(req: JoinFairRequest):
     db = SessionLocal()
-    db.query(Notification).filter(
-        Notification.user_id == req.userID,
-        Notification.seen == False
-    ).update({"seen": True})
+    db.query(Notification).filter(Notification.user_id == req.userID,
+                                  Notification.seen == False).update(
+                                      {"seen": True})
     db.commit()
     db.close()
     return {"status": "success"}
+
 
 @app.get("/api/matches", response_model=List[MatchResponse])
 def get_matches(userID: str):
@@ -466,34 +450,36 @@ def get_matches(userID: str):
         db.close()
         raise HTTPException(status_code=404, detail="User not found")
 
-    matches = db.query(Match).filter(
-        (Match.user_a_id == userID) | (Match.user_b_id == userID)
-    ).order_by(Match.created_at.desc()).all()
+    matches = db.query(Match).filter((Match.user_a_id == userID)
+                                     | (Match.user_b_id == userID)).order_by(
+                                         Match.created_at.desc()).all()
 
     result = []
     for m in matches:
         other_id = m.user_b_id if m.user_a_id == userID else m.user_a_id
         other_user = db.query(User).filter(User.id == other_id).first()
         other_tags = other_user.interest_tags if other_user and other_user.interest_tags else []
-        both_at_event = (user.inside_fair and other_user.inside_fair) if other_user else False
+        both_at_event = (user.inside_fair
+                         and other_user.inside_fair) if other_user else False
         i_am_a = (m.user_a_id == userID)
         i_confirmed = m.user_a_confirmed if i_am_a else m.user_b_confirmed
         other_confirmed = m.user_b_confirmed if i_am_a else m.user_a_confirmed
-        show_codeword = m.codeword if (m.user_a_confirmed and m.user_b_confirmed) else None
-        result.append(MatchResponse(
-            match_id=m.id,
-            other_user_id=other_id,
-            other_user_tags=other_tags,
-            both_at_event=both_at_event,
-            matched_at=m.created_at.isoformat(),
-            user_a_confirmed=m.user_a_confirmed,
-            user_b_confirmed=m.user_b_confirmed,
-            i_confirmed=i_confirmed,
-            other_confirmed=other_confirmed,
-            codeword=show_codeword
-        ))
+        show_codeword = m.codeword if (m.user_a_confirmed
+                                       and m.user_b_confirmed) else None
+        result.append(
+            MatchResponse(match_id=m.id,
+                          other_user_id=other_id,
+                          other_user_tags=other_tags,
+                          both_at_event=both_at_event,
+                          matched_at=m.created_at.isoformat(),
+                          user_a_confirmed=m.user_a_confirmed,
+                          user_b_confirmed=m.user_b_confirmed,
+                          i_confirmed=i_confirmed,
+                          other_confirmed=other_confirmed,
+                          codeword=show_codeword))
     db.close()
     return result
+
 
 @app.post("/api/matches/{match_id}/confirm")
 def confirm_talk(match_id: str, req: ConfirmTalkRequest):
@@ -519,10 +505,10 @@ def confirm_talk(match_id: str, req: ConfirmTalkRequest):
                 id=str(uuid.uuid4()),
                 user_id=uid,
                 notif_type="codeword",
-                message=f"You both want to talk! Your codeword is: {match.codeword}",
+                message=
+                f"You both want to talk! Your codeword is: {match.codeword}. Or just find eachother normally!",
                 related_match_id=match.id,
-                extra_data={"codeword": match.codeword}
-            )
+                extra_data={"codeword": match.codeword})
             db.add(notif)
 
     db.commit()
@@ -536,6 +522,7 @@ def confirm_talk(match_id: str, req: ConfirmTalkRequest):
     db.close()
     return result
 
+
 @app.get("/api/matches/{match_id}/status")
 def match_status(match_id: str, userID: str):
     db = SessionLocal()
@@ -546,19 +533,25 @@ def match_status(match_id: str, userID: str):
     both_confirmed = match.user_a_confirmed and match.user_b_confirmed
     i_am_a = (match.user_a_id == userID)
     result = {
-        "i_confirmed": match.user_a_confirmed if i_am_a else match.user_b_confirmed,
-        "other_confirmed": match.user_b_confirmed if i_am_a else match.user_a_confirmed,
+        "i_confirmed":
+        match.user_a_confirmed if i_am_a else match.user_b_confirmed,
+        "other_confirmed":
+        match.user_b_confirmed if i_am_a else match.user_a_confirmed,
         "both_confirmed": both_confirmed,
         "codeword": match.codeword if both_confirmed else None
     }
     db.close()
     return result
 
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/")
 def serve_frontend():
-    return FileResponse("static/index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse("static/index.html",
+                        headers={"Cache-Control": "no-cache"})
+
 
 if __name__ == "__main__":
     import uvicorn
