@@ -477,10 +477,9 @@ async function markNotificationsSeen() {
   try {
     await apiCall("POST", "/api/notifications/mark-seen", { userID: userID });
     updateNotifBadge(0);
-    loadNotifications();
-    showToast("All marked as read");
+    lastSeenNotifCount = 0;
   } catch (e) {
-    showToast(e.message, "error");
+    console.error("Failed to mark notifications seen", e);
   }
 }
 
@@ -725,7 +724,7 @@ document.querySelectorAll(".tab").forEach(function(tab) {
     document.querySelectorAll(".tab-content").forEach(function(c) { c.classList.remove("active"); });
     tab.classList.add("active");
     document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
-    if (tab.dataset.tab === "notifications") loadNotifications();
+    if (tab.dataset.tab === "notifications") { loadNotifications(); markNotificationsSeen(); }
     if (tab.dataset.tab === "matches") loadMatches();
     if (tab.dataset.tab === "feed") { loadPosts(); loadRecommendedTags(); }
   });
