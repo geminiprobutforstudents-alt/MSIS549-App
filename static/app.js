@@ -590,14 +590,6 @@ async function pollNotifications() {
           }
           sendBrowserNotification("Talkalot - Go!", n.message);
         } else if (n.notif_type === "like") {
-          showNotifDialog({
-            icon: "Like",
-            iconClass: "icon-like",
-            title: "Someone liked your post!",
-            message: n.message,
-            dismissText: "OK"
-          });
-          sendBrowserNotification("Talkalot", n.message);
         }
       }
     }

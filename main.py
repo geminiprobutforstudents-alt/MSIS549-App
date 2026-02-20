@@ -507,7 +507,7 @@ def confirm_talk(match_id: str, req: ConfirmTalkRequest):
                 user_id=uid,
                 notif_type="codeword",
                 message=
-                f"You both want to talk! Your codeword is: {match.codeword}. Or just find eachother normally!",
+                f"You both want to talk! Your codeword is: {match.codeword}. Or just find each other normally!",
                 related_match_id=match.id,
                 extra_data={"codeword": match.codeword})
             db.add(notif)
