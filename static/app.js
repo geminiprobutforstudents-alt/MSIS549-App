@@ -8,6 +8,7 @@ let lastSeenPostCount = -1;
 let activeCodewordMatchId = null;
 let codewordPollTimer = null;
 let dialogQueue = [];
+let confirmedMatchIds = new Set();
 let dialogOpen = false;
 
 function showScreen(id) {
@@ -442,7 +443,11 @@ async function loadNotifications() {
           }).join("") + '</div>';
         }
         if (n.related_match_id) {
-          extra += '<button class="btn-confirm-talk" data-match-id="' + n.related_match_id + '">I want to talk!</button>';
+          if (confirmedMatchIds.has(n.related_match_id)) {
+            extra += '<button class="btn-confirm-talk waiting" disabled data-match-id="' + n.related_match_id + '">Waiting for them...</button>';
+          } else {
+            extra += '<button class="btn-confirm-talk" data-match-id="' + n.related_match_id + '">I want to talk!</button>';
+          }
         }
       }
       if (n.notif_type === "codeword" && n.related_match_id) {
@@ -487,6 +492,9 @@ async function loadMatches() {
       container.innerHTML = '<p class="empty-state">No matches yet. Like some posts to find mutual interests!</p>';
       return;
     }
+    matches.forEach(function(m) {
+      if (m.i_confirmed) confirmedMatchIds.add(m.match_id);
+    });
     container.innerHTML = matches.map(function(m) {
       var statusClass = m.both_at_event ? "nearby" : "away";
       var statusText = m.both_at_event ? "Both here!" : "Not nearby";
@@ -623,6 +631,7 @@ async function confirmTalk(matchId, btn) {
       btn.textContent = "Confirming...";
     }
     var result = await apiCall("POST", "/api/matches/" + matchId + "/confirm", { user_id: userID });
+    confirmedMatchIds.add(matchId);
     if (result.both_confirmed && result.codeword) {
       showCodewordScreen(result.codeword, matchId);
     } else {
@@ -630,7 +639,9 @@ async function confirmTalk(matchId, btn) {
       if (btn) {
         btn.textContent = "Waiting for them...";
         btn.classList.add("waiting");
+        btn.disabled = true;
       }
+      loadNotifications();
       startCodewordPoll(matchId);
     }
   } catch (e) {
