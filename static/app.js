@@ -4,6 +4,7 @@ let currentTags = [];
 let pollTimer = null;
 let browserNotifsEnabled = localStorage.getItem("talkalot_browser_notifs") === "true";
 let lastSeenNotifCount = 0;
+let lastSeenPostCount = -1;
 let activeCodewordMatchId = null;
 let codewordPollTimer = null;
 let dialogQueue = [];
@@ -604,6 +605,15 @@ async function pollNotifications() {
     updateNotifBadge(newCount);
     insideFair = data.inside_fair;
     updateEventBanner();
+    var postCount = data.total_posts || 0;
+    if (lastSeenPostCount >= 0 && postCount !== lastSeenPostCount) {
+      var feedTab = document.querySelector('[data-tab="feed"]');
+      if (feedTab && feedTab.classList.contains("active")) {
+        loadPosts();
+        loadRecommendedTags();
+      }
+    }
+    lastSeenPostCount = postCount;
   } catch (e) {
     console.error("Poll failed", e);
   }

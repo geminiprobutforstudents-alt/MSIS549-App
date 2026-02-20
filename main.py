@@ -295,7 +295,8 @@ def user_status(userID: str):
     check_proximity_notifications(db, userID)
     unread = db.query(Notification).filter(Notification.user_id == userID,
                                            Notification.seen == False).count()
-    result = {"inside_fair": user.inside_fair, "unread_notifications": unread}
+    total_posts = db.query(Post).count()
+    result = {"inside_fair": user.inside_fair, "unread_notifications": unread, "total_posts": total_posts}
     db.close()
     return result
 
