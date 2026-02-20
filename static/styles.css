@@ -18,6 +18,8 @@ body {
   background: #f0f2f5;
   min-height: 100vh;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.12);
+  border-left: 2px solid #d1cde0;
+  border-right: 2px solid #d1cde0;
   position: relative;
 }
 
