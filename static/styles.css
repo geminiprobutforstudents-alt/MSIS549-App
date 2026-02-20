@@ -493,6 +493,12 @@ textarea:focus {
   border-color: #6c5ce7;
 }
 
+.tag-suggestion.selected {
+  background: #6c5ce7;
+  color: #fff;
+  border-color: #6c5ce7;
+}
+
 .notif-card {
   background: #fff;
   border-radius: 12px;

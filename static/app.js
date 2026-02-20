@@ -229,16 +229,16 @@ async function checkUserStatus() {
   }
 }
 
-function addTag(tag) {
+function toggleTag(tag) {
   tag = tag.trim().toLowerCase();
-  if (!tag || currentTags.includes(tag)) return;
-  currentTags.push(tag);
+  if (!tag) return;
+  if (currentTags.includes(tag)) {
+    currentTags = currentTags.filter(function(t) { return t !== tag; });
+  } else {
+    currentTags.push(tag);
+  }
   renderTags();
-}
-
-function removeTag(tag) {
-  currentTags = currentTags.filter(function(t) { return t !== tag; });
-  renderTags();
+  updateTagButtons();
 }
 
 function renderTags() {
@@ -248,7 +248,17 @@ function renderTags() {
       '<span class="remove-tag" data-tag="' + escapeHtml(t) + '">&times;</span></span>';
   }).join("");
   container.querySelectorAll(".remove-tag").forEach(function(el) {
-    el.addEventListener("click", function() { removeTag(el.dataset.tag); });
+    el.addEventListener("click", function() { toggleTag(el.dataset.tag); });
+  });
+}
+
+function updateTagButtons() {
+  document.querySelectorAll(".tag-suggestion").forEach(function(btn) {
+    if (currentTags.includes(btn.dataset.tag)) {
+      btn.classList.add("selected");
+    } else {
+      btn.classList.remove("selected");
+    }
   });
 }
 
@@ -268,6 +278,7 @@ async function submitPost() {
     document.getElementById("post-content").value = "";
     currentTags = [];
     renderTags();
+    updateTagButtons();
     showToast("Interest posted!");
     document.querySelector('[data-tab="feed"]').click();
     loadPosts();
@@ -656,16 +667,8 @@ document.querySelectorAll(".tab").forEach(function(tab) {
   });
 });
 
-document.getElementById("tag-input").addEventListener("keydown", function(e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    addTag(e.target.value);
-    e.target.value = "";
-  }
-});
-
 document.querySelectorAll(".tag-suggestion").forEach(function(btn) {
-  btn.addEventListener("click", function() { addTag(btn.dataset.tag); });
+  btn.addEventListener("click", function() { toggleTag(btn.dataset.tag); });
 });
 
 if (userID) {
