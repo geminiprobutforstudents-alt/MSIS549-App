@@ -116,5 +116,6 @@ outputType = "console"
 expertMode = true
 
 [deployment]
-deploymentTarget = "vm"
+deploymentTarget = "autoscale"
 run = ["python", "main.py"]
+build = ["bash", "-c", "pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic"]
