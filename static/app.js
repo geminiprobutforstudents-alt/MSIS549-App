@@ -660,10 +660,36 @@ async function showCodewordForMatch(matchId) {
   }
 }
 
+var brightColors = [
+  "linear-gradient(135deg, #ff6b6b, #ee5a24)",
+  "linear-gradient(135deg, #ff9ff3, #f368e0)",
+  "linear-gradient(135deg, #feca57, #ff9f43)",
+  "linear-gradient(135deg, #48dbfb, #0abde3)",
+  "linear-gradient(135deg, #ff6348, #ff4757)",
+  "linear-gradient(135deg, #7bed9f, #2ed573)",
+  "linear-gradient(135deg, #70a1ff, #1e90ff)",
+  "linear-gradient(135deg, #ff7979, #eb4d4b)",
+  "linear-gradient(135deg, #badc58, #6ab04c)",
+  "linear-gradient(135deg, #e056fd, #be2edd)",
+  "linear-gradient(135deg, #f0932b, #e55039)",
+  "linear-gradient(135deg, #22a6b3, #7ed6df)"
+];
+
 function showCodewordScreen(codeword, matchId) {
   activeCodewordMatchId = matchId;
   document.getElementById("codeword-text").textContent = codeword;
+  var color = brightColors[Math.abs(hashCode(matchId)) % brightColors.length];
+  document.querySelector(".codeword-fullscreen").style.background = color;
   showScreen("codeword-screen");
+}
+
+function hashCode(str) {
+  var hash = 0;
+  for (var i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
 }
 
 function exitCodewordScreen() {
