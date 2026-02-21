@@ -21,54 +21,6 @@ externalPort = 3000
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "Dev Server"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start"
-
-[[workflows.workflow]]
-name = "EAS Init"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas init"
-
-[[workflows.workflow]]
-name = "EAS Update"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas update --auto"
-
-[[workflows.workflow]]
-name = "EAS Publish Preview iOS"
-mode = "sequential"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas build --platform ios --profile preview"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "EAS Publish Preview Android"
-mode = "sequential"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas build --platform android --profile preview"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
 name = "Project"
 mode = "parallel"
 author = "agent"
@@ -76,18 +28,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Talkalot Backend"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "EAS Register Device"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "EAS Publish Preview iOS"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "EAS Publish Preview Android"
 
 [[workflows.workflow]]
 name = "Talkalot Backend"
@@ -100,17 +40,6 @@ outputType = "webview"
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "EAS Register Device"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas device:create"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 expertMode = true
