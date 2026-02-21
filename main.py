@@ -144,7 +144,7 @@ class ConfirmTalkRequest(BaseModel):
 
 CODEWORD_PHRASES = [
     "Banana Bread",
-    "86 Santa Fe Chicken",
+    "86 Santa Fe Chicken!",
     "Gimme a Cheese Pizza With Nothin!",
 ]
 

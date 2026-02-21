@@ -559,14 +559,6 @@ async function pollNotifications() {
       for (var i = 0; i < newOnes.length; i++) {
         var n = newOnes[i];
         if (n.notif_type === "match") {
-          showNotifDialog({
-            icon: "Match",
-            iconClass: "icon-match",
-            title: "New Match!",
-            message: n.message,
-            dismissText: "Got it"
-          });
-          sendBrowserNotification("Talkalot - New Match", n.message);
         } else if (n.notif_type === "proximity") {
           var extraHtml = "";
           if (n.extra_data) {
