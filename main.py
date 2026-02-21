@@ -146,7 +146,6 @@ CODEWORD_PHRASES = [
     "Banana Bread",
     "86 Santa Fe Chicken",
     "Gimme a Cheese Pizza With Nothin!",
-    "Agent Orange Chicken",
 ]
 
 
@@ -296,7 +295,11 @@ def user_status(userID: str):
     unread = db.query(Notification).filter(Notification.user_id == userID,
                                            Notification.seen == False).count()
     total_posts = db.query(Post).count()
-    result = {"inside_fair": user.inside_fair, "unread_notifications": unread, "total_posts": total_posts}
+    result = {
+        "inside_fair": user.inside_fair,
+        "unread_notifications": unread,
+        "total_posts": total_posts
+    }
     db.close()
     return result
 
@@ -572,6 +575,7 @@ def recommended_tags(userID: str):
     top = [tag for tag, _ in scored.most_common(4)]
     db.close()
     return {"tags": top}
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
