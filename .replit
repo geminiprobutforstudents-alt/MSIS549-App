@@ -116,5 +116,5 @@ outputType = "console"
 expertMode = true
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 run = ["python", "main.py"]
