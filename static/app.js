@@ -671,9 +671,6 @@ async function showCodewordForMatch(matchId) {
 function showCodewordScreen(codeword, matchId) {
   activeCodewordMatchId = matchId;
   document.getElementById("codeword-text").textContent = codeword;
-  var colors = ["#0066ff", "#e84393", "#00b894", "#6c5ce7", "#e17055", "#00cec9", "#d63031", "#fdcb6e", "#0984e3", "#a29bfe"];
-  var color = colors[Math.floor(Math.random() * colors.length)];
-  document.getElementById("codeword-screen").style.background = color;
   showScreen("codeword-screen");
 }
 
